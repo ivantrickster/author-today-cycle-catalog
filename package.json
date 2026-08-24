@@ -4,8 +4,8 @@
   "private": true,
   "description": "Неофициальное расширение для поиска и анализа книжных циклов Author.Today.",
   "scripts": {
-    "check": "node --check background.js && node --check content.js && node --check consent.js && node --check current.js && node --check popup.js && node --check search.js",
-    "test": "npm run check && node tests/extension-smoke-test.mjs",
+    "check": "node --check background.js && node --check content.js && node --check consent.js && node --check shared-ui.js && node --check current.js && node --check popup.js && node --check search.js",
+    "test": "npm run check && node tests/extension-smoke-test.mjs && node tests/ui-shared-test.mjs",
     "test:integration": "node tests/search-integration-test.mjs"
   },
   "engines": {

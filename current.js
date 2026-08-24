@@ -120,13 +120,7 @@ function renderCycle() {
 
 async function copyReport() {
   if (!currentCycle) return;
-  const score = selectedScore();
-  const report = [`AT Cycle Catalog ${chrome.runtime.getManifest().version} · модель ${currentCycle.metricVersion || '—'}`, `${currentCycle.title} — ${currentCycle.author || 'Автор не указан'}`, currentCycle.url,
-    `Режим: база том №${score.baselineBook || '—'}, последний том №${score.lastBook || '—'}, в расчёте ${score.includedCount || 0}`,
-    `Балл: ${score.value ?? 'не рассчитан'}; аудитория ${percent(score.audienceRetention)} (эталон ${percent(score.expectedAudienceRetention)}, ${score.audiencePoints || 0}/60); лайки ${percent(score.likeRetention)} (эталон ${percent(score.expectedLikeRetention)}, ${score.likePoints || 0}/40)`,
-    `Лайков на 100 добавлений: ${decimal(score.baselineLikesPer100Libraries)} → ${decimal(score.lastLikesPer100Libraries)} (справочно)`,
-    `Срок расчёта: ${score.ratingDurationLabel || '—'}; потеря 50%: ${durationMonths(score.audienceHalfLife?.months)}`,
-    `Участвуют тома: ${(score.includedBookNumbers || []).join(', ') || '—'}; исключены по датам: ${(score.excludedChronologyBooks || []).join(', ') || 'нет'}; исключены по объёму: ${(score.excludedVolumeBooks || []).join(', ') || 'нет'}`].join('\n');
+  const report = diagnosticReport(currentCycle, selectedScore());
   try { await navigator.clipboard.writeText(report); }
   catch { const area = document.createElement('textarea'); area.value = report; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); }
   $('#notice').textContent = 'Диагностический отчёт скопирован.';
@@ -141,11 +135,5 @@ function setBusy(busy) {
   $('#refresh').disabled = busy;
   if (!inCatalog) $('#add').disabled = busy;
 }
-function percent(value) { return Number.isFinite(value) ? `${Math.round(value * 100)}%` : '—'; }
-function count(value) { return Number.isFinite(value) ? value.toLocaleString('ru-RU') : '—'; }
-function decimal(value) { return Number.isFinite(value) ? value.toLocaleString('ru-RU', { maximumFractionDigits: 1 }) : '—'; }
-function plural(value, forms) { const tens = value % 100, units = value % 10; return tens >= 11 && tens <= 14 ? forms[2] : units === 1 ? forms[0] : units >= 2 && units <= 4 ? forms[1] : forms[2]; }
-function durationMonths(value) { if (!Number.isFinite(value)) return '—'; if (value < 1) return 'менее месяца'; const months = Math.max(1, Math.round(value)), years = Math.floor(months / 12), remainder = months % 12, parts = []; if (years) parts.push(`${years} ${plural(years, ['год', 'года', 'лет'])}`); if (remainder) parts.push(`${remainder} ${plural(remainder, ['месяц', 'месяца', 'месяцев'])}`); return parts.join(' '); }
-function escapeHtml(value) { const el = document.createElement('div'); el.textContent = value ?? ''; return el.innerHTML; }
 
 requirePrivacyConsent().then(() => loadCycle());
