@@ -414,5 +414,6 @@ for (const page of ['current', 'popup', 'search']) {
   assert.ok(html.indexOf('shared-ui.js') < html.indexOf(`${page}.js`), `${page}.html must load shared-ui.js first`);
   assert.match(pageSource, /if \(accepted\)/, `${page}.js must not start after declined consent`);
 }
+assert.match(fs.readFileSync(new URL('../current.html', import.meta.url), 'utf8'), /width:\s*560px;\s*min-height:\s*560px/);
 
 console.log('Smoke tests passed: privacy consent, parsing, 3-tom minimum, time/book-adjusted 60/40 rating, half-life, reference comments, adaptive genres, filters and 10-card search batches work.');
