@@ -1,0 +1,47 @@
+name: Сообщить об ошибке
+description: Воспроизводимая проблема в расширении или расчётах
+title: "[Ошибка]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Не прикладывайте cookies, данные аккаунта, платные тексты или другую личную информацию.
+  - type: input
+    id: version
+    attributes:
+      label: Версия расширения
+      placeholder: 0.16.1
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Браузер и версия
+      placeholder: Chrome 140, Яндекс.Браузер 25.8
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Публичная ссылка на цикл или том
+      description: Оставьте пустым, если ссылка не нужна для воспроизведения.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как воспроизвести
+      placeholder: Перечислите действия по порядку.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Ожидаемый и фактический результат
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Проверка данных
+      options:
+        - label: Я убедился, что описание и вложения не содержат личных или закрытых данных.
+          required: true

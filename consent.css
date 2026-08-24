@@ -1,0 +1,9 @@
+.privacy-consent-pending body { overflow: hidden; }
+.privacy-consent-overlay { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; padding: 18px; background: rgba(10, 8, 15, .84); }
+.privacy-consent-card { width: min(540px, 100%); padding: 28px; border: 1px solid #544b67; border-radius: 18px; background: #211d2a; color: #f8f4ff; box-shadow: 0 24px 70px rgba(0, 0, 0, .45); font: 15px/1.55 system-ui, sans-serif; }
+.privacy-consent-card h1 { margin: 0 0 15px; font-size: 24px; line-height: 1.2; }
+.privacy-consent-card p { margin: 10px 0; color: #d8d0e2; }
+.privacy-consent-card a { display: inline-block; margin: 8px 0 20px; color: #beaaff; }
+.privacy-consent-card button { display: block; width: 100%; padding: 12px 16px; border: 0; border-radius: 10px; background: #6d55d9; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.privacy-consent-card button:focus-visible { outline: 3px solid #cbbcff; outline-offset: 3px; }
+.privacy-consent-eyebrow { margin: 0 0 7px !important; color: #a990ff !important; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }

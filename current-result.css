@@ -1,0 +1,14 @@
+.score-context.result-good {
+  background: #20372d;
+  border: 1px solid #315b46;
+}
+
+.score-context.result-neutral {
+  background: #2d2938;
+  border: 1px solid #49415b;
+}
+
+.score-context.result-bad {
+  background: #3b292d;
+  border: 1px solid #634047;
+}

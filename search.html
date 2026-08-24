@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Поиск циклов — Каталог циклов</title>
+  <link rel="stylesheet" href="search.css">
+  <link rel="stylesheet" href="consent.css">
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Каталог циклов</p>
+      <h1>Поиск циклов</h1>
+      <p class="subtitle">Подборка циклов Author.Today по удержанию аудитории и лайков</p>
+    </div>
+  </header>
+
+  <main>
+    <form id="searchForm" class="panel filters">
+      <div class="field">
+        <label for="status">Статус цикла</label>
+        <select id="status">
+          <option value="all">Любой</option>
+          <option value="completed">Только завершённые</option>
+          <option value="ongoing">Только в процессе</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="minBookLikes">Лайков у первого тома больше</label>
+        <input id="minBookLikes" type="number" min="0" step="100" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Жанры</label>
+        <button id="genreButton" class="genre-button" type="button">
+          <span id="genreSummary">Любые жанры</span>
+          <span class="genre-button-action">Настроить</span>
+        </button>
+      </div>
+      <div class="field">
+        <label for="minScore">Общий балл больше</label>
+        <input id="minScore" type="number" min="0" max="100" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="minAudienceRetention">Удержание аудитории больше, %</label>
+        <input id="minAudienceRetention" type="number" min="0" max="120" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="minLikeRetention">Удержание лайков больше, %</label>
+        <input id="minLikeRetention" type="number" min="0" max="120" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="minBooks">Томов в цикле больше</label>
+        <input id="minBooks" type="number" min="0" step="1" placeholder="0">
+      </div>
+      <label class="option"><input id="fromSecond" type="checkbox"> Считать начиная со второго тома</label>
+      <label class="option"><input id="finishedOnly" type="checkbox"> Учитывать только завершённые тома</label>
+      <button id="searchButton" class="primary" type="submit">Найти циклы</button>
+      <p class="form-note">За один шаг подбирается до 10 подходящих циклов. При строгих фильтрах поиск может занять больше времени.</p>
+    </form>
+
+    <section class="results-area">
+      <div class="section-heading">
+        <div>
+          <h2>Результаты</h2>
+          <p id="summary" class="muted">Настройте фильтры и запустите поиск.</p>
+        </div>
+      </div>
+      <p id="notice" class="notice" role="status"></p>
+      <div id="results" class="results"></div>
+      <button id="loadMore" class="secondary load-more" type="button" hidden>Показать ещё 10 циклов</button>
+    </section>
+
+    <details class="panel excluded-panel">
+      <summary>Исключённые циклы <span id="excludedCount" class="counter">0</span></summary>
+      <p class="muted">Эти циклы не появляются в новых подборках. Любой из них можно вернуть.</p>
+      <div id="excludedList"></div>
+    </details>
+  </main>
+
+  <div id="genreModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close-genres></div>
+    <section class="genre-dialog" role="dialog" aria-modal="true" aria-labelledby="genreDialogTitle">
+      <header class="genre-dialog-header">
+        <div>
+          <h2 id="genreDialogTitle">Настройка жанров</h2>
+          <p>У группы можно задать общее правило, а у поджанра — исключение.</p>
+        </div>
+        <button id="closeGenres" class="icon-button" type="button" aria-label="Закрыть">×</button>
+      </header>
+      <div class="genre-dialog-tools">
+        <input id="genreSearch" type="search" placeholder="Найти жанр">
+        <div id="genreSelections" class="genre-selections"></div>
+      </div>
+      <div class="genre-legend">
+        Выберите один вариант в строке. Повторное нажатие снимает выбор.
+      </div>
+      <div id="genreNotice" class="genre-notice" role="status"></div>
+      <div id="genreTree" class="genre-tree"></div>
+      <footer class="genre-dialog-footer">
+        <button id="clearGenres" class="secondary" type="button">Сбросить жанры</button>
+        <div>
+          <button id="cancelGenres" class="secondary" type="button">Отмена</button>
+          <button id="applyGenres" class="primary" type="button">Применить</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <script src="consent.js"></script>
+  <script src="search.js"></script>
+</body>
+</html>

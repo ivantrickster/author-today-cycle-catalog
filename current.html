@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Статистика цикла — Каталог циклов</title>
+  <link rel="stylesheet" href="current.css">
+  <link rel="stylesheet" href="current-result.css">
+  <link rel="stylesheet" href="consent.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Каталог циклов</p>
+      <h1>Статистика цикла</h1>
+    </header>
+
+    <p id="notice" class="notice" role="status">Проверяю открытую страницу…</p>
+
+    <section id="controls" class="controls" hidden>
+      <label><input id="fromSecond" type="checkbox"> Считать начиная со второго тома</label>
+      <label><input id="finishedOnly" type="checkbox"> Учитывать только завершённые тома</label>
+    </section>
+
+    <section id="cycle" hidden></section>
+
+    <div id="cycleActions" class="actions" hidden>
+      <button id="refresh" class="primary">Обновить статистику</button>
+      <button id="add" class="secondary">Добавить в мой каталог</button>
+      <button id="copyReport">Скопировать диагностический отчёт</button>
+    </div>
+
+    <nav class="navigation" aria-label="Разделы расширения">
+      <button id="catalog">Открыть мой каталог</button>
+      <button id="search">Найти новые циклы</button>
+    </nav>
+  </main>
+  <script src="consent.js"></script>
+  <script src="current.js"></script>
+</body>
+</html>

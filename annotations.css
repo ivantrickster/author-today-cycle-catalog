@@ -1,0 +1,41 @@
+.growth-note {
+  background: #23362f;
+  color: #a8efbf;
+}
+.finale-note { background: #3c2e22; color: #ffd39b; }
+.genre-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.genre-tags span { border: 1px solid #514763; border-radius: 999px; background: #282331; color: #c9bddb; padding: 2px 7px; font-size: 11px; }
+
+.dynamics {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #3b3548;
+}
+.dynamics[hidden] { display: none; }
+.chart-loading, .chart-block {
+  margin-top: 7px;
+  padding: 8px;
+  border-radius: 7px;
+  background: #292532;
+  color: #aaa2b9;
+  font-size: 11px;
+}
+.chart-error { color: #ffadb5; }
+.chart-intro { color: #9f97ad; font-size: 10px; }
+.chart-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; color: #d9d2e5; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 9px; color: #aaa2b9; font-size: 10px; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.chart-legend i { width: 11px; height: 3px; border-radius: 2px; }
+.legend-library { background: #63c987; }
+.legend-likes { background: #bda1ff; }
+.legend-comments { background: #7fc9ff; }
+.trend-chart { display: block; width: 100%; height: auto; }
+.chart-grid line { stroke: #494359; stroke-width: 1; }
+.chart-grid text, .chart-x-label { fill: #8f879e; font-size: 8px; text-anchor: end; }
+.chart-x-label { text-anchor: middle; }
+.chart-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-point { stroke: #201d29; stroke-width: 1; }
+.chart-point-muted { opacity: .55; }
+.chart-point-finale { stroke: #ffd39b; stroke-width: 2; }
+.chart-tooltip { position: fixed; z-index: 100000; max-width: 280px; padding: 7px 9px; border: 1px solid #625973; border-radius: 7px; background: #17151fee; box-shadow: 0 5px 18px #0008; color: #f4f0ff; font-size: 11px; line-height: 1.4; white-space: pre-line; pointer-events: none; }
+.chart-tooltip[hidden] { display: none; }
