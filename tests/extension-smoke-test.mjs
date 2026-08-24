@@ -404,12 +404,15 @@ const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.m
 const consentSource = fs.readFileSync(new URL('../consent.js', import.meta.url), 'utf8');
 const contentSource = fs.readFileSync(new URL('../content.js', import.meta.url), 'utf8');
 assert.equal(manifest.version, '0.16.1');
-assert.match(consentSource, /Понятно, продолжить/);
+assert.match(consentSource, />Принять</);
+assert.match(consentSource, />Отклонить</);
 assert.match(consentSource, /privacyConsent/);
 assert.match(contentSource, /privacyConsent\?\.version !== 1/);
 for (const page of ['current', 'popup', 'search']) {
   const html = fs.readFileSync(new URL(`../${page}.html`, import.meta.url), 'utf8');
+  const pageSource = fs.readFileSync(new URL(`../${page}.js`, import.meta.url), 'utf8');
   assert.ok(html.indexOf('shared-ui.js') < html.indexOf(`${page}.js`), `${page}.html must load shared-ui.js first`);
+  assert.match(pageSource, /if \(accepted\)/, `${page}.js must not start after declined consent`);
 }
 
 console.log('Smoke tests passed: privacy consent, parsing, 3-tom minimum, time/book-adjusted 60/40 rating, half-life, reference comments, adaptive genres, filters and 10-card search batches work.');

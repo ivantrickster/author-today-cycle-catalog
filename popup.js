@@ -145,4 +145,4 @@ async function toggleDynamics(seriesId, url, button) {
   }
 }
 
-requirePrivacyConsent().then(() => render());
+requirePrivacyConsent().then(accepted => { if (accepted) render(); });

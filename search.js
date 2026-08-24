@@ -406,4 +406,4 @@ async function initializeSearchPage() {
   await renderExcluded(state);
 }
 
-requirePrivacyConsent().then(() => initializeSearchPage());
+requirePrivacyConsent().then(accepted => { if (accepted) initializeSearchPage(); });

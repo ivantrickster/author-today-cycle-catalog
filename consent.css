@@ -1,9 +1,20 @@
 .privacy-consent-pending body { overflow: hidden; }
-.privacy-consent-overlay { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; padding: 18px; background: rgba(10, 8, 15, .84); }
-.privacy-consent-card { width: min(540px, 100%); padding: 28px; border: 1px solid #544b67; border-radius: 18px; background: #211d2a; color: #f8f4ff; box-shadow: 0 24px 70px rgba(0, 0, 0, .45); font: 15px/1.55 system-ui, sans-serif; }
+.privacy-consent-overlay { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; padding: 12px; background: rgba(10, 8, 15, .84); box-sizing: border-box; }
+.privacy-consent-card { display: grid; grid-template-rows: minmax(0, 1fr) auto; width: min(540px, 100%); max-height: 100%; border: 1px solid #544b67; border-radius: 18px; overflow: hidden; background: #211d2a; color: #f8f4ff; box-shadow: 0 24px 70px rgba(0, 0, 0, .45); font: 15px/1.55 system-ui, sans-serif; box-sizing: border-box; }
+.privacy-consent-content { min-height: 0; padding: 24px 24px 12px; overflow-y: auto; }
 .privacy-consent-card h1 { margin: 0 0 15px; font-size: 24px; line-height: 1.2; }
 .privacy-consent-card p { margin: 10px 0; color: #d8d0e2; }
-.privacy-consent-card a { display: inline-block; margin: 8px 0 20px; color: #beaaff; }
-.privacy-consent-card button { display: block; width: 100%; padding: 12px 16px; border: 0; border-radius: 10px; background: #6d55d9; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.privacy-consent-card a { display: inline-block; margin: 8px 0; color: #beaaff; }
+.privacy-consent-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 24px 24px; background: #211d2a; }
+.privacy-consent-card button { display: block; width: 100%; padding: 12px 16px; border: 1px solid transparent; border-radius: 10px; background: #6d55d9; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.privacy-consent-card .privacy-consent-decline { border-color: #544b67; background: #332d3e; color: #e6dfea; }
+.privacy-consent-declined .privacy-consent-actions { grid-template-columns: 1fr; }
 .privacy-consent-card button:focus-visible { outline: 3px solid #cbbcff; outline-offset: 3px; }
 .privacy-consent-eyebrow { margin: 0 0 7px !important; color: #a990ff !important; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+@media (max-height: 520px) {
+  .privacy-consent-overlay { padding: 8px; }
+  .privacy-consent-content { padding: 16px 18px 8px; }
+  .privacy-consent-card h1 { margin-bottom: 10px; font-size: 20px; }
+  .privacy-consent-card p { margin: 7px 0; }
+  .privacy-consent-actions { padding: 10px 18px 16px; }
+}

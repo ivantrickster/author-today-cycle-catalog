@@ -136,4 +136,4 @@ function setBusy(busy) {
   if (!inCatalog) $('#add').disabled = busy;
 }
 
-requirePrivacyConsent().then(() => loadCycle());
+requirePrivacyConsent().then(accepted => { if (accepted) loadCycle(); });
