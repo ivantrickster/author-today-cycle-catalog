@@ -34,6 +34,13 @@ function escapeHtml(value) {
   return element.innerHTML;
 }
 
+async function openExtensionPage(path) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const options = { url: chrome.runtime.getURL(path) };
+  if (Number.isInteger(tab?.windowId)) options.windowId = tab.windowId;
+  return chrome.tabs.create(options);
+}
+
 function ratingHint(score) {
   const adjustment = score.chronologyAdjusted ? `\nТом №${score.excludedChronologyBooks.join(', №')} исключён: дата публикации нарушает порядок томов.` : '';
   const volume = score.volumeAdjusted ? `\nТом №${score.excludedVolumeBooks.join(', №')} исключён: объём меньше 35% медианного объёма томов цикла.` : '';

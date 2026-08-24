@@ -3,6 +3,7 @@
   "name": "Каталог циклов для Author.Today",
   "version": "0.16.1",
   "description": "Неофициальный каталог, поиск и анализ удержания аудитории в циклах Author.Today.",
+  "incognito": "split",
   "permissions": ["storage", "alarms"],
   "host_permissions": ["https://author.today/*", "https://api.author.today/*"],
   "icons": {

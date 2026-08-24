@@ -3,8 +3,8 @@ let currentUrl = '';
 let currentCycle = null;
 let inCatalog = false;
 
-$('#catalog').onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
-$('#search').onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL('search.html') });
+$('#catalog').onclick = () => openExtensionPage('popup.html');
+$('#search').onclick = () => openExtensionPage('search.html');
 $('#refresh').onclick = () => loadCycle(true);
 $('#add').onclick = addToCatalog;
 $('#copyReport').onclick = copyReport;

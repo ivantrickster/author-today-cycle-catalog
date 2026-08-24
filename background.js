@@ -36,6 +36,21 @@ const SEARCH_CACHE_LIMIT = 200;
 const GENRE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CYCLE_STATS_TTL_MS = 24 * 60 * 60 * 1000;
 const STORAGE_CLEANUP_ALARM = 'storageCleanup';
+const STORAGE_PREFIX = chrome.extension?.inIncognitoContext ? 'incognito:' : '';
+
+function scopedStorageKey(key) {
+  return `${STORAGE_PREFIX}${key}`;
+}
+
+async function storageGet(defaults) {
+  const scopedDefaults = Object.fromEntries(Object.entries(defaults).map(([key, value]) => [scopedStorageKey(key), value]));
+  const stored = await chrome.storage.local.get(scopedDefaults);
+  return Object.fromEntries(Object.keys(defaults).map(key => [key, stored[scopedStorageKey(key)]]));
+}
+
+function storageSet(values) {
+  return chrome.storage.local.set(Object.fromEntries(Object.entries(values).map(([key, value]) => [scopedStorageKey(key), value])));
+}
 
 chrome.runtime.onInstalled.addListener(async () => {
   await cleanupStorage();
@@ -66,13 +81,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 });
 
 async function getState() {
-  const data = await chrome.storage.local.get({ cycles: [], queue: [], pausedUntil: 0 });
+  const data = await storageGet({ cycles: [], queue: [], pausedUntil: 0 });
   return { ...data, pausedUntil: data.pausedUntil > Date.now() ? data.pausedUntil : 0, now: Date.now() };
 }
 
 async function cleanupStorage() {
   const now = Date.now();
-  const existing = await chrome.storage.local.get({
+  const existing = await storageGet({
     cycles: [], queue: [], pausedUntil: 0, excludedCycles: [], searchCache: {},
     genreRules: {}, genreCatalog: null, lastError: null
   });
@@ -90,7 +105,7 @@ async function cleanupStorage() {
     const validGenreIds = new Set(genreCatalog.genres.map(genre => String(Number(genre.id))));
     genreRules = Object.fromEntries(Object.entries(genreRules).filter(([id]) => validGenreIds.has(id)));
   }
-  await chrome.storage.local.set({
+  await storageSet({
     cycles,
     queue,
     pausedUntil: existing.pausedUntil > now ? existing.pausedUntil : 0,
@@ -122,37 +137,37 @@ function isCycleStale(cycle, now = Date.now()) {
 
 async function importUrls(urls) {
   const valid = [...new Set(urls.map(normalizeUrl).filter(Boolean))];
-  const { cycles = [], queue = [] } = await chrome.storage.local.get({ cycles: [], queue: [] });
+  const { cycles = [], queue = [] } = await storageGet({ cycles: [], queue: [] });
   const known = new Set([...cycles.map(c => c.url), ...queue]);
   const add = valid.filter(url => !known.has(url));
-  await chrome.storage.local.set({ queue: [...queue, ...add] });
+  await storageSet({ queue: [...queue, ...add] });
   return { added: add.length };
 }
 
 async function clearCatalog() {
-  await chrome.storage.local.set({ cycles: [], queue: [], pausedUntil: 0, lastError: null });
+  await storageSet({ cycles: [], queue: [], pausedUntil: 0, lastError: null });
   return { cleared: true };
 }
 
 async function removeCycle(url) {
-  const { cycles = [], queue = [] } = await chrome.storage.local.get({ cycles: [], queue: [] });
-  await chrome.storage.local.set({ cycles: cycles.filter(c => c.url !== url), queue: queue.filter(item => item !== url) });
+  const { cycles = [], queue = [] } = await storageGet({ cycles: [], queue: [] });
+  await storageSet({ cycles: cycles.filter(c => c.url !== url), queue: queue.filter(item => item !== url) });
   return { removed: true };
 }
 
 async function getSearchState() {
-  const { excludedCycles = [], genreRules = {} } = await chrome.storage.local.get({ excludedCycles: [], genreRules: {} });
+  const { excludedCycles = [], genreRules = {} } = await storageGet({ excludedCycles: [], genreRules: {} });
   return { excludedCycles: [...excludedCycles].sort((a, b) => Date.parse(b.hiddenAt) - Date.parse(a.hiddenAt)), genreRules: normalizeGenreRules(genreRules) };
 }
 
 async function saveGenreRules(rules) {
   const genreRules = normalizeGenreRules(rules);
-  await chrome.storage.local.set({ genreRules });
+  await storageSet({ genreRules });
   return { saved: true, genreRules };
 }
 
 async function getGenreCatalog() {
-  const { genreCatalog = null } = await chrome.storage.local.get({ genreCatalog: null });
+  const { genreCatalog = null } = await storageGet({ genreCatalog: null });
   if (genreCatalog?.genres?.length && isFreshTimestamp(genreCatalog.cachedAt, GENRE_CACHE_TTL_MS)) return genreCatalog.genres;
   try {
     const response = await fetch('https://api.author.today/v1/work/genres', { headers: { Authorization: 'Bearer guest' } });
@@ -164,13 +179,13 @@ async function getGenreCatalog() {
       code: String(genre.code || ''),
       workCount: Number(genre.workCount) || 0
     })).filter(genre => genre.id && genre.title);
-    const { genreRules = {} } = await chrome.storage.local.get({ genreRules: {} });
+    const { genreRules = {} } = await storageGet({ genreRules: {} });
     const validGenreIds = new Set(genres.map(genre => String(genre.id)));
     const cleanedRules = Object.fromEntries(Object.entries(normalizeGenreRules(genreRules)).filter(([id]) => validGenreIds.has(id)));
-    await chrome.storage.local.set({ genreCatalog: { genres, cachedAt: new Date().toISOString() }, genreRules: cleanedRules });
+    await storageSet({ genreCatalog: { genres, cachedAt: new Date().toISOString() }, genreRules: cleanedRules });
     return genres;
   } catch (error) {
-    await chrome.storage.local.set({ genreCatalog: null });
+    await storageSet({ genreCatalog: null });
     throw error;
   }
 }
@@ -178,7 +193,7 @@ async function getGenreCatalog() {
 async function excludeCycle(cycle, reason) {
   const seriesId = Number(cycle?.seriesId);
   if (!seriesId || !['ignored', 'read'].includes(reason)) return { excluded: false };
-  const { excludedCycles = [] } = await chrome.storage.local.get({ excludedCycles: [] });
+  const { excludedCycles = [] } = await storageGet({ excludedCycles: [] });
   const entry = {
     seriesId,
     title: String(cycle.title || `Цикл ${seriesId}`),
@@ -187,32 +202,32 @@ async function excludeCycle(cycle, reason) {
     reason,
     hiddenAt: new Date().toISOString()
   };
-  await chrome.storage.local.set({ excludedCycles: [entry, ...excludedCycles.filter(item => Number(item.seriesId) !== seriesId)] });
+  await storageSet({ excludedCycles: [entry, ...excludedCycles.filter(item => Number(item.seriesId) !== seriesId)] });
   return { excluded: true };
 }
 
 async function restoreExcluded(seriesId) {
   const id = Number(seriesId);
-  const { excludedCycles = [] } = await chrome.storage.local.get({ excludedCycles: [] });
-  await chrome.storage.local.set({ excludedCycles: excludedCycles.filter(item => Number(item.seriesId) !== id) });
+  const { excludedCycles = [] } = await storageGet({ excludedCycles: [] });
+  await storageSet({ excludedCycles: excludedCycles.filter(item => Number(item.seriesId) !== id) });
   return { restored: true };
 }
 
 async function addSearchCycle(seriesId) {
   const id = Number(seriesId);
-  const { searchCache = {}, cycles = [], queue = [] } = await chrome.storage.local.get({ searchCache: {}, cycles: [], queue: [] });
+  const { searchCache = {}, cycles = [], queue = [] } = await storageGet({ searchCache: {}, cycles: [], queue: [] });
   const cleanedCache = pruneSearchCache(searchCache);
   const cycle = cleanedCache[id]?.cycle;
-  if (Object.keys(cleanedCache).length !== Object.keys(searchCache).length) await chrome.storage.local.set({ searchCache: cleanedCache });
+  if (Object.keys(cleanedCache).length !== Object.keys(searchCache).length) await storageSet({ searchCache: cleanedCache });
   if (!cycle) return { added: false, reason: 'not-cached' };
   if (cycles.some(item => Number(item.seriesId) === id || item.url === cycle.url)) return { added: false, reason: 'exists' };
-  await chrome.storage.local.set({ cycles: [cycle, ...cycles], queue: queue.filter(url => url !== cycle.url) });
+  await storageSet({ cycles: [cycle, ...cycles], queue: queue.filter(url => url !== cycle.url) });
   return { added: true };
 }
 
 async function getCycleDynamics(seriesId, url) {
   const id = Number(seriesId);
-  const state = await chrome.storage.local.get({ searchCache: {}, cycles: [] });
+  const state = await storageGet({ searchCache: {}, cycles: [] });
   const cycleIndex = state.cycles.findIndex(item => (id && Number(item.seriesId) === id) || (url && item.url === url));
   let cycle = (id && state.searchCache[id]?.cycle) || (cycleIndex >= 0 ? state.cycles[cycleIndex] : null);
   if (!cycle?.books?.length) return { status: 'not-found' };
@@ -234,13 +249,13 @@ async function getCycleDynamics(seriesId, url) {
     if (cycleIndex >= 0) nextCycles[cycleIndex] = cycle;
     const nextCache = { ...state.searchCache };
     if (id && nextCache[id]) nextCache[id] = { cycle, cachedAt: now };
-    await chrome.storage.local.set({ cycles: nextCycles, searchCache: pruneSearchCache(nextCache) });
+    await storageSet({ cycles: nextCycles, searchCache: pruneSearchCache(nextCache) });
   }
   return { status: 'ready', cycle };
 }
 
 async function analyzeCurrentCycle(value, { force = false } = {}) {
-  const state = await chrome.storage.local.get({ cycles: [], searchCache: {}, pausedUntil: 0 });
+  const state = await storageGet({ cycles: [], searchCache: {}, pausedUntil: 0 });
   if (state.pausedUntil > Date.now()) return { status: 'paused', until: state.pausedUntil };
   const resolved = await resolveCyclePage(value, state);
   if (resolved.status !== 'ready') return resolved;
@@ -258,7 +273,7 @@ async function analyzeCurrentCycle(value, { force = false } = {}) {
     const cycles = stored
       ? state.cycles.map(item => Number(item.seriesId) === seriesId || item.url === url ? cycle : item)
       : state.cycles;
-    await chrome.storage.local.set({ searchCache, cycles });
+    await storageSet({ searchCache, cycles });
   }
   return {
     status: 'ready',
@@ -287,7 +302,7 @@ async function resolveCyclePage(value, state = { cycles: [], searchCache: {} }) 
 }
 
 async function searchCycles(filters, cursor) {
-  const { pausedUntil = 0, excludedCycles = [], searchCache = {} } = await chrome.storage.local.get({ pausedUntil: 0, excludedCycles: [], searchCache: {} });
+  const { pausedUntil = 0, excludedCycles = [], searchCache = {} } = await storageGet({ pausedUntil: 0, excludedCycles: [], searchCache: {} });
   const startCursor = {
     page: Math.max(1, Number(cursor?.page) || 1),
     offset: Math.max(0, Number(cursor?.offset) || 0)
@@ -360,7 +375,7 @@ async function searchCycles(filters, cursor) {
   for (const cycle of results) nextCache[cycle.seriesId] = { cycle, cachedAt: new Date().toISOString() };
   const trimmedCache = pruneSearchCache(nextCache);
   const nextPausedUntil = blocked ? Date.now() + PAUSE_MS : pausedUntil;
-  await chrome.storage.local.set({ searchCache: trimmedCache, pausedUntil: nextPausedUntil });
+  await storageSet({ searchCache: trimmedCache, pausedUntil: nextPausedUntil });
   return {
     status: blocked ? 'paused' : 'ok',
     until: blocked ? nextPausedUntil : 0,
@@ -604,7 +619,7 @@ async function runQueue({ scheduleNext = true } = {}) {
   if (!state.queue.length) {
     const incomplete = state.cycles.filter(cycle => isCycleStale(cycle)).map(cycle => cycle.url);
     if (!incomplete.length) return { status: 'empty' };
-    await chrome.storage.local.set({ queue: incomplete });
+    await storageSet({ queue: incomplete });
     state = { ...state, queue: incomplete };
   }
   const url = state.queue[0];
@@ -614,12 +629,12 @@ async function runQueue({ scheduleNext = true } = {}) {
     const nextCycles = [...state.cycles];
     if (existingIndex >= 0) nextCycles[existingIndex] = cycle;
     else nextCycles.unshift(cycle);
-    await chrome.storage.local.set({ cycles: nextCycles, queue: state.queue.slice(1), lastError: null });
+    await storageSet({ cycles: nextCycles, queue: state.queue.slice(1), lastError: null });
     if (scheduleNext && state.queue.length > 1) chrome.alarms.create('nextScan', { when: Date.now() + NEXT_CYCLE_MS });
     return { status: 'scanned', cycle };
   } catch (error) {
     const pause = /429|403|captcha|access denied/i.test(error.message);
-    await chrome.storage.local.set({
+    await storageSet({
       queue: state.queue.slice(1),
       pausedUntil: pause ? Date.now() + PAUSE_MS : 0,
       lastError: `${url}: ${error.message}`
@@ -630,7 +645,7 @@ async function runQueue({ scheduleNext = true } = {}) {
 }
 
 chrome.alarms.onAlarm.addListener(async alarm => {
-  const { privacyConsent } = await chrome.storage.local.get({ privacyConsent: null });
+  const { privacyConsent } = await storageGet({ privacyConsent: null });
   if (privacyConsent?.version !== 1) return;
   if (alarm.name === 'nextScan') runQueue();
   if (alarm.name === STORAGE_CLEANUP_ALARM) cleanupStorage();

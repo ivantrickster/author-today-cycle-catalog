@@ -4,7 +4,7 @@ const expandedDynamics = new Set();
 let manualCycleOrder = null;
 setupChartTooltip();
 
-$('#search').onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL('search.html') });
+$('#search').onclick = () => openExtensionPage('search.html');
 $('#import').onclick = async () => {
   const result = await chrome.runtime.sendMessage({ type: 'importUrls', urls: $('#urls').value.split(/\s+/) });
   $('#urls').value = '';

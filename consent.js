@@ -1,9 +1,10 @@
 (function () {
   const CONSENT_VERSION = 1;
+  const CONSENT_KEY = chrome.extension?.inIncognitoContext ? 'incognito:privacyConsent' : 'privacyConsent';
 
   window.requirePrivacyConsent = async function requirePrivacyConsent() {
-    const state = await chrome.storage.local.get({ privacyConsent: null });
-    if (state.privacyConsent?.version === CONSENT_VERSION) return true;
+    const state = await chrome.storage.local.get({ [CONSENT_KEY]: null });
+    if (state[CONSENT_KEY]?.version === CONSENT_VERSION) return true;
 
     return new Promise(resolve => {
       document.documentElement.classList.add('privacy-consent-pending');
@@ -25,7 +26,7 @@
       </section>`;
       overlay.querySelector('.privacy-consent-accept').focus();
       overlay.querySelector('.privacy-consent-accept').onclick = async () => {
-        await chrome.storage.local.set({ privacyConsent: { version: CONSENT_VERSION, acceptedAt: new Date().toISOString() } });
+        await chrome.storage.local.set({ [CONSENT_KEY]: { version: CONSENT_VERSION, acceptedAt: new Date().toISOString() } });
         overlay.remove();
         document.documentElement.classList.remove('privacy-consent-pending');
         resolve(true);

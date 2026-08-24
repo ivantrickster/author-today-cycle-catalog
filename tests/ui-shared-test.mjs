@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const sourcePath = new URL('../shared-ui.js', import.meta.url);
 const source = `${fs.readFileSync(sourcePath, 'utf8')}
-globalThis.__test = { percent, count, durationMonths, escapeHtml, ratingHint, diagnosticReport, renderLineChart, ratioPercent, absoluteComments };`;
+globalThis.__test = { percent, count, durationMonths, escapeHtml, ratingHint, diagnosticReport, renderLineChart, ratioPercent, absoluteComments, openExtensionPage };`;
 
 const document = {
   createElement() {
@@ -17,11 +17,18 @@ const document = {
     };
   }
 };
-const chrome = { runtime: { getManifest: () => ({ version: '0.16.1' }) } };
+let createdTab = null;
+const chrome = {
+  runtime: { getManifest: () => ({ version: '0.16.1' }), getURL: path => `chrome-extension://test/${path}` },
+  tabs: {
+    async query() { return [{ windowId: 17 }]; },
+    async create(options) { createdTab = options; return options; }
+  }
+};
 const context = { document, chrome, Number, Math, Set };
 vm.runInNewContext(source, context);
 
-const { percent, count, durationMonths, escapeHtml, ratingHint, diagnosticReport, renderLineChart, ratioPercent, absoluteComments } = context.__test;
+const { percent, count, durationMonths, escapeHtml, ratingHint, diagnosticReport, renderLineChart, ratioPercent, absoluteComments, openExtensionPage } = context.__test;
 assert.equal(percent(.456), '46%');
 assert.equal(count(null), '—');
 assert.equal(durationMonths(28), '2 года 4 месяца');
@@ -30,6 +37,9 @@ assert.equal(escapeHtml('<том> & "цикл"'), '&lt;том&gt; &amp; &quot;ц
 assert.equal(ratioPercent(50, 200), 25);
 assert.equal(ratioPercent('', 200), null);
 assert.equal(absoluteComments({ comments: '120' }), 120);
+await openExtensionPage('popup.html');
+assert.equal(createdTab.url, 'chrome-extension://test/popup.html');
+assert.equal(createdTab.windowId, 17);
 
 const score = {
   value: 50,

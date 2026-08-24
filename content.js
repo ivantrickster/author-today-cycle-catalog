@@ -1,6 +1,7 @@
 (async () => {
-const { privacyConsent } = await chrome.storage.local.get({ privacyConsent: null });
-if (privacyConsent?.version !== 1) return;
+const consentKey = chrome.extension?.inIncognitoContext ? 'incognito:privacyConsent' : 'privacyConsent';
+const consentState = await chrome.storage.local.get({ [consentKey]: null });
+if (consentState[consentKey]?.version !== 1) return;
 
 const button = document.createElement('button');
 button.id = 'at-cycle-catalog-add';

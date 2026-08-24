@@ -3,10 +3,11 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const sourcePath = new URL('../background.js', import.meta.url);
-const source = `${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__test = { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics };`;
+const source = `${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__test = { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics, scopedStorageKey };`;
 const emptyListener = { addListener() {} };
 const storageState = {};
 const chrome = {
+  extension: { inIncognitoContext: false },
   runtime: { onInstalled: emptyListener, onMessage: emptyListener },
   alarms: { onAlarm: emptyListener, create() {}, async clear() {} },
   tabs: { async create() {}, async remove() {} },
@@ -41,7 +42,11 @@ const context = { chrome, URL, URLSearchParams, console, setTimeout, clearTimeou
   return { ok: true, status: 200, async json() { return { id: workId, title: `API-книга ${workId}`, format: workId === 300 ? 'Audiobook' : 'EBook', seriesWorkIds: [100, 200, 300], likeCount: 123, commentCount: 104, chapters: [{ publishTime: '2020-01-15T10:00:00Z' }], lastUpdateTime: '2022-07-20T12:00:00Z', isFinished: true }; } };
 } };
 vm.runInNewContext(source, context);
-const { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics } = context.__test;
+const { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics, scopedStorageKey } = context.__test;
+assert.equal(scopedStorageKey('cycles'), 'cycles');
+const incognitoContext = { ...context, chrome: { ...chrome, extension: { inIncognitoContext: true } } };
+vm.runInNewContext(source, incognitoContext);
+assert.equal(incognitoContext.__test.scopedStorageKey('cycles'), 'incognito:cycles');
 
 assert.equal(parseNumber('4,64М'), 4_640_000);
 assert.equal(parseNumber('8 771'), 8771);
@@ -404,10 +409,12 @@ const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.m
 const consentSource = fs.readFileSync(new URL('../consent.js', import.meta.url), 'utf8');
 const contentSource = fs.readFileSync(new URL('../content.js', import.meta.url), 'utf8');
 assert.equal(manifest.version, '0.16.1');
+assert.equal(manifest.incognito, 'split');
 assert.match(consentSource, />Принять</);
 assert.match(consentSource, />Отклонить</);
 assert.match(consentSource, /privacyConsent/);
-assert.match(contentSource, /privacyConsent\?\.version !== 1/);
+assert.match(consentSource, /incognito:privacyConsent/);
+assert.match(contentSource, /incognito:privacyConsent/);
 for (const page of ['current', 'popup', 'search']) {
   const html = fs.readFileSync(new URL(`../${page}.html`, import.meta.url), 'utf8');
   const pageSource = fs.readFileSync(new URL(`../${page}.js`, import.meta.url), 'utf8');
