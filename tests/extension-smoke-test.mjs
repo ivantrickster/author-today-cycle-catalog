@@ -407,6 +407,7 @@ assert.equal(storageState.genreCatalog, null);
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
 const consentSource = fs.readFileSync(new URL('../consent.js', import.meta.url), 'utf8');
+const consentStyles = fs.readFileSync(new URL('../consent.css', import.meta.url), 'utf8');
 const contentSource = fs.readFileSync(new URL('../content.js', import.meta.url), 'utf8');
 assert.equal(manifest.version, '0.16.1');
 assert.equal(manifest.incognito, 'split');
@@ -415,6 +416,8 @@ assert.match(consentSource, />Отклонить</);
 assert.match(consentSource, /privacyConsent/);
 assert.match(consentSource, /incognito:privacyConsent/);
 assert.match(contentSource, /incognito:privacyConsent/);
+assert.match(consentStyles, /place-items:\s*stretch center/);
+assert.match(consentStyles, /grid-template-rows:\s*minmax\(0, 1fr\) auto/);
 for (const page of ['current', 'popup', 'search']) {
   const html = fs.readFileSync(new URL(`../${page}.html`, import.meta.url), 'utf8');
   const pageSource = fs.readFileSync(new URL(`../${page}.js`, import.meta.url), 'utf8');
