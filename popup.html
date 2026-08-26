@@ -1,14 +1,47 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="popup.css"><link rel="stylesheet" href="annotations.css"><link rel="stylesheet" href="consent.css"><title>Мой каталог циклов AT</title></head><body class="catalog-page">
-<main><h1>Мой каталог циклов</h1><p class="intro">Сохранённые циклы, их статистика и сравнение</p>
-<button id="search" style="width:100%;margin-bottom:12px">Найти новые циклы</button>
-<section class="add"><label for="urls">Ссылка на цикл</label><textarea id="urls" placeholder="https://author.today/work/series/12345&#10;Можно вставить несколько ссылок — каждую с новой строки"></textarea><button id="import">Добавить цикл</button></section>
-<div class="toolbar"><button id="show" class="analyze">Обновить статистику</button><button id="sortRating">Сортировать по рейтингу</button><button id="clear" class="clear">Очистить каталог</button></div>
-<p id="queue" class="hint"></p><p id="notice" role="status"></p>
-<div id="filters" class="filters">
-  <select id="status" class="wide"><option value="all">Все статусы</option><option value="completed">Завершённые циклы</option><option value="ongoing">Циклы в процессе</option></select>
-  <label class="wide">Удержание аудитории больше <input id="minAudienceRetention" type="number" min="0" max="120" placeholder="0">%</label>
-  <label class="wide">Удержание лайков больше <input id="minLikeRetention" type="number" min="0" max="120" placeholder="0">%</label>
-  <label class="wide option"><input id="fromSecond" type="checkbox"> Считать начиная со второго тома</label>
-  <label class="wide option"><input id="finishedOnly" type="checkbox"> Учитывать только завершённые тома</label>
-</div>
-<section id="list"></section></main><script src="consent.js"></script><script src="shared-ui.js"></script><script src="popup.js"></script></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Мой каталог циклов</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="current-result.css">
+  <link rel="stylesheet" href="annotations.css">
+  <link rel="stylesheet" href="consent.css">
+</head>
+<body class="catalog-page">
+  <main>
+    <section id="filters" class="filters" aria-label="Фильтры каталога">
+      <div class="filter-heading">
+        <strong>Мой каталог</strong>
+        <div class="filter-actions">
+          <button id="search" class="text-button" type="button">Найти циклы</button>
+          <button id="ratingInfo" class="icon-button" type="button" title="Как считается рейтинг" aria-label="Как считается рейтинг">i</button>
+          <button id="show" class="icon-button refresh" type="button" title="Обновить все" aria-label="Обновить все">↻</button>
+          <details class="more-menu">
+            <summary class="icon-button" title="Другие действия" aria-label="Другие действия">⋯</summary>
+            <div>
+              <label for="urls">Добавить по ссылке</label>
+              <textarea id="urls" placeholder="https://author.today/work/series/12345"></textarea>
+              <button id="import" type="button">Добавить</button>
+              <button id="clear" class="danger" type="button">Очистить каталог</button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="filter-grid">
+        <label>Статус<select id="status"><option value="all">Все циклы</option><option value="completed">Завершённые</option><option value="ongoing">В процессе</option></select></label>
+        <label>Сортировка<select id="sortBy"><option value="rating">Рейтинг</option><option value="audience">Аудитория</option><option value="likes">Лайки</option><option value="comments">Комментарии</option><option value="books">Количество томов</option><option value="updated">Дата обновления</option><option value="title">Название</option></select></label>
+        <button id="sortDirection" class="direction" type="button" value="desc" title="Направление сортировки" aria-label="По убыванию">↓</button>
+        <label>Аудитория от, %<input id="minAudienceRetention" type="number" min="0" max="120" placeholder="0"></label>
+        <label>Лайки от, %<input id="minLikeRetention" type="number" min="0" max="120" placeholder="0"></label>
+      </div>
+    </section>
+    <div class="catalog-state"><span id="queue"></span><span id="notice" role="status"></span></div>
+    <section id="list"></section>
+  </main>
+  <script src="consent.js"></script>
+  <script src="shared-ui.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

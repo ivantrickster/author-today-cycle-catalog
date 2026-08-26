@@ -10,9 +10,8 @@
 <body>
   <header class="page-header">
     <div>
-      <p class="eyebrow">Каталог циклов</p>
       <h1>Поиск циклов</h1>
-      <p class="subtitle">Подборка циклов Author.Today по удержанию аудитории и лайков</p>
+      <button id="ratingInfo" class="header-info" type="button" title="Как считается рейтинг" aria-label="Как считается рейтинг">i</button>
     </div>
   </header>
 
@@ -53,8 +52,6 @@
         <label for="minBooks">Томов в цикле больше</label>
         <input id="minBooks" type="number" min="0" step="1" placeholder="0">
       </div>
-      <label class="option"><input id="fromSecond" type="checkbox"> Считать начиная со второго тома</label>
-      <label class="option"><input id="finishedOnly" type="checkbox"> Учитывать только завершённые тома</label>
       <button id="searchButton" class="primary" type="submit">Найти циклы</button>
       <p class="form-note">За один шаг подбирается до 10 подходящих циклов. При строгих фильтрах поиск может занять больше времени.</p>
     </form>

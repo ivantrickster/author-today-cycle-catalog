@@ -1,7 +1,7 @@
 const API_CONCURRENCY = 4;
 const NEXT_CYCLE_MS = 500;
 const PAUSE_MS = 24 * 60 * 60 * 1000;
-const METRIC_VERSION = 22;
+const METRIC_VERSION = 23;
 const PUBLICATION_ORDER_TOLERANCE_MS = 24 * 60 * 60 * 1000;
 const EARLY_IMPORT_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 const TRANSFER_GROWTH_THRESHOLD = 1.05;
@@ -13,16 +13,17 @@ const MODEL_BENCHMARK = 0.5;
 const MODEL_MAX_TRANSITIONS = 21;
 const MODEL_MAX_DURATION_MONTHS = 70;
 const MODEL_MATURITY_MONTHS = 6;
-// Robust fit on 300 completed Author.Today cycles (August 2026). The model
-// estimates cumulative loss from transitions between toms and publication time.
+// Robust fit on 1,000 current Author.Today cycles (August 2026). The public
+// rating uses completed volumes starting from volume two so free introductory
+// volumes and unfinished releases do not distort the baseline.
 const RETENTION_MODEL = {
   default: {
-    audience: [0.8172999268, 0.3662175648],
-    likes: [0.5431390050, 0.1985022680]
+    audience: [0.929230, 0.261887],
+    likes: [0.658730, 0.161459]
   },
   fromSecond: {
-    audience: [0.3141115798, 0.4347971684],
-    likes: [0.2887959611, 0.2344276046]
+    audience: [0.385609, 0.408629],
+    likes: [0.395302, 0.209725]
   }
 };
 const FINALE_SPIKE_LOOKBACK = 4;
@@ -37,6 +38,17 @@ const GENRE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CYCLE_STATS_TTL_MS = 24 * 60 * 60 * 1000;
 const STORAGE_CLEANUP_ALARM = 'storageCleanup';
 const STORAGE_PREFIX = chrome.extension?.inIncognitoContext ? 'incognito:' : '';
+const DEFAULT_UI_PREFERENCES = {
+  fromSecond: true,
+  finishedOnly: true,
+  catalog: {
+    status: 'all',
+    minAudienceRetention: '',
+    minLikeRetention: '',
+    sortBy: 'rating',
+    sortDirection: 'desc'
+  }
+};
 
 function scopedStorageKey(key) {
   return `${STORAGE_PREFIX}${key}`;
@@ -77,6 +89,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (message.type === 'addSearchCycle') addSearchCycle(message.seriesId).then(reply);
   if (message.type === 'getCycleDynamics') getCycleDynamics(message.seriesId, message.url).then(reply).catch(error => reply({ status: 'error', error: error.message }));
   if (message.type === 'analyzeCurrentCycle') analyzeCurrentCycle(message.url, { force: Boolean(message.force) }).then(reply).catch(error => reply({ status: 'error', error: error.message }));
+  if (message.type === 'getUiPreferences') getUiPreferences().then(reply);
+  if (message.type === 'saveUiPreferences') saveUiPreferences(message.preferences || {}).then(reply);
+  if (message.type === 'openRatingInfo') chrome.tabs.create({ url: chrome.runtime.getURL('rating.html') }).then(reply);
   return true;
 });
 
@@ -85,11 +100,44 @@ async function getState() {
   return { ...data, pausedUntil: data.pausedUntil > Date.now() ? data.pausedUntil : 0, now: Date.now() };
 }
 
+async function getUiPreferences() {
+  const { uiPreferences = {} } = await storageGet({ uiPreferences: {} });
+  return normalizeUiPreferences(uiPreferences);
+}
+
+async function saveUiPreferences(patch) {
+  const current = await getUiPreferences();
+  const merged = {
+    ...current,
+    ...patch,
+    catalog: { ...current.catalog, ...(patch.catalog || {}) }
+  };
+  const uiPreferences = normalizeUiPreferences(merged);
+  await storageSet({ uiPreferences });
+  return uiPreferences;
+}
+
+function normalizeUiPreferences(value) {
+  const catalog = value?.catalog || {};
+  const allowedSorts = new Set(['rating', 'audience', 'likes', 'comments', 'books', 'updated', 'title']);
+  return {
+    fromSecond: true,
+    finishedOnly: true,
+    catalog: {
+      status: ['all', 'completed', 'ongoing'].includes(catalog.status) ? catalog.status : 'all',
+      minAudienceRetention: String(catalog.minAudienceRetention ?? '').slice(0, 6),
+      minLikeRetention: String(catalog.minLikeRetention ?? '').slice(0, 6),
+      sortBy: allowedSorts.has(catalog.sortBy) ? catalog.sortBy : 'rating',
+      sortDirection: catalog.sortDirection === 'asc' ? 'asc' : 'desc'
+    }
+  };
+}
+
 async function cleanupStorage() {
   const now = Date.now();
   const existing = await storageGet({
     cycles: [], queue: [], pausedUntil: 0, excludedCycles: [], searchCache: {},
-    genreRules: {}, genreCatalog: null, lastError: null
+    genreRules: {}, genreCatalog: null, lastError: null, uiPreferences: DEFAULT_UI_PREFERENCES
   });
   const cycles = Array.isArray(existing.cycles) ? existing.cycles : [];
   const queue = [...new Set((Array.isArray(existing.queue) ? existing.queue : []).map(normalizeUrl).filter(Boolean))];
@@ -113,6 +161,7 @@ async function cleanupStorage() {
     searchCache: pruneSearchCache(existing.searchCache, now),
     genreRules,
     genreCatalog,
+    uiPreferences: normalizeUiPreferences(existing.uiPreferences),
     lastError: typeof existing.lastError === 'string' ? existing.lastError.slice(0, 1000) : null
   });
   return { cleaned: true };
@@ -244,7 +293,7 @@ async function getCycleDynamics(seriesId, url) {
     for (const item of stats) books[item.index].libraries = libraryAudienceCount(item.stats);
     const now = new Date().toISOString();
     const scores = calculateAllScores(books, { cycleCompleted: cycle.status === 'completed' });
-    cycle = { ...cycle, books, scores, score: scores.default, metricVersion: METRIC_VERSION, updatedAt: now, dynamicsUpdatedAt: now };
+    cycle = { ...cycle, books, scores, score: scores.finishedFromSecond, metricVersion: METRIC_VERSION, updatedAt: now, dynamicsUpdatedAt: now };
     const nextCycles = [...state.cycles];
     if (cycleIndex >= 0) nextCycles[cycleIndex] = cycle;
     const nextCache = { ...state.searchCache };
@@ -458,7 +507,7 @@ async function analyzeCatalogCandidate(candidate, genreCatalog = []) {
     status: cycleCompleted ? 'completed' : 'ongoing',
     books,
     ...duration,
-    score: scores.default,
+    score: scores.finishedFromSecond,
     scores,
     metricVersion: METRIC_VERSION,
     updatedAt: new Date().toISOString()
@@ -500,6 +549,7 @@ function workMetaToBook(work) {
     comments: work.commentCount ?? null,
     textLength: work.textLength ?? null,
     publishedAt: work.publishTime || work.publicationTime || null,
+    finishedAt: work.finishTime || null,
     publicationOrderAt: work.finishTime || work.lastModificationTime || null,
     lastUpdatedAt: work.lastUpdateTime || work.lastModificationTime || work.finishTime || null,
     isFinished: work.isFinished ?? work.finished ?? false,
@@ -525,8 +575,7 @@ function genreTitles(ids, catalog) {
 }
 
 function scoreForSearch(cycle, filters) {
-  const key = filters.finishedOnly ? (filters.fromSecond ? 'finishedFromSecond' : 'finished') : (filters.fromSecond ? 'fromSecond' : 'default');
-  return cycle.scores?.[key] || cycle.score || {};
+  return cycle.scores?.finishedFromSecond || cycle.score || {};
 }
 
 function normalizeGenreRules(rules) {
@@ -668,7 +717,7 @@ async function scanCycle(url) {
   const duration = calculateCycleDuration(books);
   const genres = genreTitles(books[0]?.genreIds, await getGenreCatalog().catch(() => []));
   const updatedAt = new Date().toISOString();
-  return { ...cycle, bookUrls, books, genres, ...duration, score: scores.default, scores, metricVersion: METRIC_VERSION, updatedAt, dynamicsUpdatedAt: updatedAt };
+  return { ...cycle, bookUrls, books, genres, ...duration, score: scores.finishedFromSecond, scores, metricVersion: METRIC_VERSION, updatedAt, dynamicsUpdatedAt: updatedAt };
 }
 
 function calculateAllScores(books, { cycleCompleted = false } = {}) {
@@ -708,6 +757,7 @@ async function fetchWorkDetails(url) {
     comments: work.commentCount ?? null,
     textLength: work.textLength ?? null,
     publishedAt,
+    finishedAt: work.finishTime || null,
     publicationOrderAt: work.finishTime || work.lastModificationTime || publishedAt,
     lastUpdatedAt: work.lastUpdateTime || work.lastModificationTime || work.finishTime || null,
     isFinished: work.isFinished ?? false,
@@ -874,6 +924,9 @@ function calculateScore(books, { startIndex = 0, finishedOnly = false, cycleComp
   const modelMode = startIndex > 0 ? 'fromSecond' : 'default';
   const expectedAudienceRetention = expectedRetention('audience', modelMode, exposure);
   const expectedLikeRetention = expectedRetention('likes', modelMode, exposure);
+  const audienceBenchmarkRatio = benchmarkRatio(audienceRetention, expectedAudienceRetention);
+  const likeBenchmarkRatio = benchmarkRatio(likeRetention, expectedLikeRetention);
+  const combinedBenchmarkRatio = weightedBenchmarkRatio(audienceBenchmarkRatio, likeBenchmarkRatio);
   const audiencePerformance = benchmarkPerformance(audienceRetention, expectedAudienceRetention);
   const likePerformance = benchmarkPerformance(likeRetention, expectedLikeRetention);
   const audienceHalfLife = calculateAudienceHalfLife(scoredBooks, audienceRetention, exposure.durationMonths);
@@ -905,6 +958,9 @@ function calculateScore(books, { startIndex = 0, finishedOnly = false, cycleComp
     likeMaxPoints,
     expectedAudienceRetention,
     expectedLikeRetention,
+    audienceBenchmarkRatio,
+    likeBenchmarkRatio,
+    combinedBenchmarkRatio,
     audiencePerformance,
     likePerformance,
     audienceHalfLife,
@@ -914,7 +970,7 @@ function calculateScore(books, { startIndex = 0, finishedOnly = false, cycleComp
     averagePublicationGapMonths: exposure.averageGapMonths,
     modelMode,
     modelBenchmark: MODEL_BENCHMARK,
-    modelSampleSize: modelMode === 'fromSecond' ? 169 : 181,
+    modelSampleSize: modelMode === 'fromSecond' ? 746 : 987,
     modelExtrapolated: exposure.transitions > MODEL_MAX_TRANSITIONS || exposure.durationMonths > MODEL_MAX_DURATION_MONTHS,
     modelDatesComplete: Number.isFinite(exposure.durationMonths),
     dataMaturityMonths: exposure.lastAgeMonths,
@@ -952,9 +1008,20 @@ function expectedRetention(metric, mode, exposure) {
 }
 
 function benchmarkPerformance(actual, expected) {
-  return Number.isFinite(actual) && Number.isFinite(expected) && expected > 0
-    ? Math.max(0, Math.min(1, MODEL_BENCHMARK * actual / expected))
+  const relative = benchmarkRatio(actual, expected);
+  return Number.isFinite(relative)
+    ? Math.max(0, Math.min(1, MODEL_BENCHMARK * relative))
     : null;
+}
+
+function benchmarkRatio(actual, expected) {
+  return Number.isFinite(actual) && Number.isFinite(expected) && expected > 0 ? actual / expected : null;
+}
+
+function weightedBenchmarkRatio(audience, likes) {
+  const signals = [[audience, 60], [likes, 40]].filter(([value]) => Number.isFinite(value));
+  const weight = signals.reduce((sum, [, itemWeight]) => sum + itemWeight, 0);
+  return weight ? signals.reduce((sum, [value, itemWeight]) => sum + value * itemWeight, 0) / weight : null;
 }
 
 function retentionExposure(scoredBooks) {

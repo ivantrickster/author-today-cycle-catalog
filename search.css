@@ -9,7 +9,9 @@
 body { margin: 0; min-width: 720px; background: #15131c; }
 .page-header { border-bottom: 1px solid #332e3e; background: #1d1a26; }
 .page-header > div, main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
-.page-header > div { padding: 28px 0 24px; }
+.page-header > div { position: relative; padding: 28px 52px 24px 0; }
+.header-info { position: absolute; top: 27px; right: 0; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid #514a60; border-radius: 50%; background: #292532; color: #c9c1d6; }
+.header-info:hover { background: #393242; color: #fff; }
 .eyebrow { margin: 0 0 4px; color: #a998ff; font-size: 12px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 h1 { margin: 0; font-size: 30px; }
 h2 { margin: 0; font-size: 21px; }
@@ -45,7 +47,7 @@ button:disabled { cursor: wait; opacity: .6; }
 .cycle-title { color: #f5f1ff; text-decoration: none; font-size: 17px; font-weight: 750; }
 .cycle-title:hover { color: #c5b7ff; }
 .author { color: #b6aec5; font-size: 13px; margin-top: 2px; }
-.score { color: #bda1ff; font-size: 25px; line-height: 1; cursor: help; }
+.score { color: #bda1ff; font-size: 25px; line-height: 1; }
 .meta { margin-top: 10px; color: #c7bfd5; font-size: 13px; }
 .anomaly-note { margin-top: 8px; padding: 7px 9px; border-radius: 7px; background: #3a3023; color: #ffd791; font-size: 11px; }
 .growth-note { background: #23362f; color: #a8efbf; }
@@ -72,6 +74,9 @@ button:disabled { cursor: wait; opacity: .6; }
 .discussion-chart-note { margin: 12px 0 -2px; padding: 7px 9px; border-left: 3px solid #7fc9ff; background: #202d38; }
 .actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 .actions button { padding: 7px 10px; font-size: 12px; }
+.actions .icon-action { width: 34px; height: 34px; padding: 0; font-size: 18px; }
+.signal-row { display: flex; gap: 5px; margin-top: 8px; }
+.signal-row span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #3a3023; color: #ffd791; font-size: 11px; cursor: help; }
 .dynamics { margin-top: 12px; padding-top: 12px; border-top: 1px solid #3b3548; }
 .dynamics[hidden] { display: none; }
 .chart-loading { padding: 18px; border-radius: 8px; background: #292532; color: #aaa2b9; text-align: center; }
@@ -95,6 +100,10 @@ button:disabled { cursor: wait; opacity: .6; }
 .chart-point-finale { stroke: #ffd39b; stroke-width: 2; }
 .chart-tooltip { position: fixed; z-index: 100000; max-width: 320px; padding: 8px 10px; border: 1px solid #625973; border-radius: 8px; background: #17151fee; box-shadow: 0 6px 20px #0008; color: #f4f0ff; font-size: 12px; line-height: 1.4; white-space: pre-line; pointer-events: none; }
 .chart-tooltip[hidden] { display: none; }
+.chart-tools { display: flex; justify-content: flex-end; }
+.chart-tools .info-button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid #514a60; border-radius: 50%; background: #292532; color: #c9c1d6; cursor: help; }
+.chart-grid-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+.chart-grid-layout .chart-block { margin-top: 0; }
 .load-more { display: block; margin: 16px auto 0; }
 .excluded-panel { grid-column: 2; padding: 14px 16px; }
 .excluded-panel summary { cursor: pointer; font-weight: 750; }

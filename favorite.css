@@ -1,0 +1,58 @@
+.heading {
+  padding-right: 134px;
+}
+
+.star-button {
+  width: 37px;
+  height: 37px;
+  background: transparent;
+  color: #ffd66b;
+  font-size: 27px;
+  line-height: 1;
+}
+
+.star-button {
+  margin-top: -3px;
+  position: relative;
+}
+
+.star-button:hover {
+  background: #393242;
+  color: #ffe39a;
+}
+
+.star-button.active {
+  background: transparent;
+  color: #ffd66b;
+}
+
+.star-button:focus-visible {
+  outline: 2px solid #ffd66b;
+  outline-offset: 1px;
+}
+
+.star-button::after {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 10;
+  padding: 5px 8px;
+  border: 1px solid #514a60;
+  border-radius: 6px;
+  background: #17151f;
+  box-shadow: 0 5px 16px #0008;
+  color: #f4f0ff;
+  content: attr(data-tooltip);
+  font: 12px/1.25 system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity .12s ease, transform .12s ease;
+  white-space: nowrap;
+}
+
+.star-button:hover::after,
+.star-button:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}

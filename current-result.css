@@ -1,3 +1,22 @@
+.score-context {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #c9c1d6;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.score-context > span {
+  display: block;
+}
+
+.score-context strong {
+  color: #f4f0ff;
+}
+
 .score-context.result-good {
   background: #20372d;
   border: 1px solid #315b46;

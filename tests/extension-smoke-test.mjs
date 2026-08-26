@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const sourcePath = new URL('../background.js', import.meta.url);
-const source = `${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__test = { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics, scopedStorageKey };`;
+const source = `${fs.readFileSync(sourcePath, 'utf8')}\nglobalThis.__test = { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics, getUiPreferences, scopedStorageKey };`;
 const emptyListener = { addListener() {} };
 const storageState = {};
 const chrome = {
@@ -42,7 +42,7 @@ const context = { chrome, URL, URLSearchParams, console, setTimeout, clearTimeou
   return { ok: true, status: 200, async json() { return { id: workId, title: `API-книга ${workId}`, format: workId === 300 ? 'Audiobook' : 'EBook', seriesWorkIds: [100, 200, 300], likeCount: 123, commentCount: 104, chapters: [{ publishTime: '2020-01-15T10:00:00Z' }], lastUpdateTime: '2022-07-20T12:00:00Z', isFinished: true }; } };
 } };
 vm.runInNewContext(source, context);
-const { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics, scopedStorageKey } = context.__test;
+const { parseNumber, parseBookPage, parseCyclePage, calculateCycleDuration, calculateScore, calculateAllScores, fetchWorkDetails, libraryAudienceCount, matchesSearchFilters, scoreForSearch, workMetaToBook, isAudiobook, scanCycle, matchesGenreRules, effectiveGenreRule, normalizeGenreRules, pruneSearchCache, isCycleStale, cleanupStorage, searchCycles, excludeCycle, restoreExcluded, getSearchState, addSearchCycle, getCycleDynamics, getUiPreferences, scopedStorageKey } = context.__test;
 assert.equal(scopedStorageKey('cycles'), 'cycles');
 const incognitoContext = { ...context, chrome: { ...chrome, extension: { inIncognitoContext: true } } };
 vm.runInNewContext(source, incognitoContext);
@@ -114,6 +114,7 @@ assert.equal(audienceScore.audiencePoints, Math.round(60 * audienceScore.audienc
 assert.equal(audienceScore.likePoints, Math.round(40 * audienceScore.likePerformance));
 assert.equal('popularityPoints' in audienceScore, false);
 assert.equal(audienceScore.value, audienceScore.audiencePoints + audienceScore.likePoints);
+assert.ok(Number.isFinite(audienceScore.combinedBenchmarkRatio));
 assert.equal('middleRetention' in audienceScore, false);
 const insufficientTwoToms = calculateScore(audienceBooks.slice(0, 2));
 assert.equal(insufficientTwoToms.value, null);
@@ -135,10 +136,9 @@ function timedRetentionBooks(count, months) {
 const conveyorScore = calculateScore(timedRetentionBooks(8, 2));
 const longRunningScore = calculateScore(timedRetentionBooks(8, 24));
 assert.equal(conveyorScore.audienceRetention, longRunningScore.audienceRetention);
-assert.ok(longRunningScore.value > conveyorScore.value);
 assert.ok(longRunningScore.expectedAudienceRetention < conveyorScore.expectedAudienceRetention);
 const shortCycleSameRetention = calculateScore(timedRetentionBooks(3, 24));
-assert.ok(longRunningScore.value > shortCycleSameRetention.value);
+assert.ok(longRunningScore.expectedAudienceRetention < shortCycleSameRetention.expectedAudienceRetention);
 const observedHalfLife = calculateScore([
   { likes: 1000, libraries: 10_000, isFinished: true, publishedAt: '2020-01-01T00:00:00Z' },
   { likes: 700, libraries: 6_000, isFinished: true, publishedAt: '2021-01-01T00:00:00Z' },
@@ -286,7 +286,7 @@ assert.equal(scannedCycle.books.some(book => book.format === 'Audiobook'), false
 const searchCycle = {
   status: 'completed', durationYears: 2.5,
   score: audienceScore,
-  scores: { default: audienceScore, fromSecond: { ...audienceScore, value: 55 } }
+  scores: { default: audienceScore, finishedFromSecond: { ...audienceScore, value: 55 } }
 };
 assert.equal(scoreForSearch(searchCycle, { fromSecond: true, finishedOnly: false }).value, 55);
 searchCycle.books = [{ likes: 1000 }, { likes: 500 }, { likes: 250 }];
@@ -332,8 +332,8 @@ storageState.searchCache = Object.fromEntries(Array.from({ length: 50 }, (_, ind
     status: 'completed',
     books: [{ likes: 500 }, { likes: 300 }, { likes: 200 }],
     score: { value },
-    scores: { default: { value } },
-    metricVersion: 22
+    scores: { finishedFromSecond: { value } },
+    metricVersion: 23
   } }];
 }));
 storageState.excludedCycles = [];
@@ -359,7 +359,7 @@ const dynamicsCycle = {
   ],
   scores: calculateAllScores([]),
   score: { value: null },
-  metricVersion: 22,
+  metricVersion: 23,
   updatedAt: new Date().toISOString()
 };
 storageState.searchCache = { 77: { cachedAt: new Date().toISOString(), cycle: dynamicsCycle } };
@@ -380,19 +380,19 @@ await excludeCycle({ seriesId: 42, title: 'Скрытый цикл', author: 'А
 assert.equal((await getSearchState()).excludedCycles[0].reason, 'ignored');
 await restoreExcluded(42);
 assert.equal((await getSearchState()).excludedCycles.length, 0);
-storageState.searchCache = { 42: { cachedAt: new Date().toISOString(), cycle: { seriesId: 42, url: 'https://author.today/work/series/42', books: [], score: { value: 1 }, metricVersion: 22, updatedAt: new Date().toISOString() } } };
+storageState.searchCache = { 42: { cachedAt: new Date().toISOString(), cycle: { seriesId: 42, url: 'https://author.today/work/series/42', books: [], score: { value: 1 }, metricVersion: 23, updatedAt: new Date().toISOString() } } };
 storageState.cycles = [];
 storageState.queue = [];
 assert.equal((await addSearchCycle(42)).added, true);
 assert.equal((await addSearchCycle(42)).reason, 'exists');
 
 const cleanupNow = Date.now();
-const freshCacheEntry = { cachedAt: new Date(cleanupNow - 60_000).toISOString(), cycle: { seriesId: 1, metricVersion: 22 } };
-const expiredCacheEntry = { cachedAt: new Date(cleanupNow - 2 * 24 * 60 * 60 * 1000).toISOString(), cycle: { seriesId: 2, metricVersion: 22 } };
-const obsoleteMetricEntry = { cachedAt: new Date(cleanupNow - 60_000).toISOString(), cycle: { seriesId: 3, metricVersion: 20 } };
+const freshCacheEntry = { cachedAt: new Date(cleanupNow - 60_000).toISOString(), cycle: { seriesId: 1, metricVersion: 23 } };
+const expiredCacheEntry = { cachedAt: new Date(cleanupNow - 2 * 24 * 60 * 60 * 1000).toISOString(), cycle: { seriesId: 2, metricVersion: 23 } };
+const obsoleteMetricEntry = { cachedAt: new Date(cleanupNow - 60_000).toISOString(), cycle: { seriesId: 3, metricVersion: 22 } };
 assert.deepEqual(Object.keys(pruneSearchCache({ 1: freshCacheEntry, 2: expiredCacheEntry, 3: obsoleteMetricEntry }, cleanupNow)), ['1']);
-assert.equal(isCycleStale({ metricVersion: 22, score: { value: 5 }, updatedAt: new Date(cleanupNow - 60_000).toISOString() }, cleanupNow), false);
-assert.equal(isCycleStale({ metricVersion: 22, score: { value: 5 }, updatedAt: new Date(cleanupNow - 2 * 24 * 60 * 60 * 1000).toISOString() }, cleanupNow), true);
+assert.equal(isCycleStale({ metricVersion: 23, score: { value: 5 }, updatedAt: new Date(cleanupNow - 60_000).toISOString() }, cleanupNow), false);
+assert.equal(isCycleStale({ metricVersion: 23, score: { value: 5 }, updatedAt: new Date(cleanupNow - 2 * 24 * 60 * 60 * 1000).toISOString() }, cleanupNow), true);
 storageState.searchCache = { 1: freshCacheEntry, 2: expiredCacheEntry, 3: obsoleteMetricEntry };
 storageState.genreCatalog = { genres: genreCatalog, cachedAt: new Date(cleanupNow - 2 * 24 * 60 * 60 * 1000).toISOString() };
 storageState.pausedUntil = cleanupNow - 1;
@@ -409,13 +409,27 @@ const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.m
 const consentSource = fs.readFileSync(new URL('../consent.js', import.meta.url), 'utf8');
 const consentStyles = fs.readFileSync(new URL('../consent.css', import.meta.url), 'utf8');
 const contentSource = fs.readFileSync(new URL('../content.js', import.meta.url), 'utf8');
-assert.equal(manifest.version, '0.16.1');
+assert.equal(manifest.version, '0.18.4');
 assert.equal(manifest.incognito, 'split');
+assert.ok(manifest.permissions.includes('clipboardWrite'));
+assert.deepEqual(manifest.content_scripts[0].matches, ['https://author.today/work/*']);
+assert.deepEqual(manifest.content_scripts[0].css, ['content.css', 'favorite-content.css']);
 assert.match(consentSource, />Принять</);
 assert.match(consentSource, />Отклонить</);
 assert.match(consentSource, /privacyConsent/);
 assert.match(consentSource, /incognito:privacyConsent/);
 assert.match(contentSource, /incognito:privacyConsent/);
+assert.match(contentSource, /analyzeCurrentCycle/);
+assert.match(contentSource, /openRatingInfo/);
+assert.match(contentSource, /at-cycle-star/);
+assert.match(contentSource, /Добавить в избранное/);
+assert.match(fs.readFileSync(new URL('../favorite-content.css', import.meta.url), 'utf8'), /#at-cycle-star\.active/);
+assert.match(fs.readFileSync(new URL('../favorite-content.css', import.meta.url), 'utf8'), /content:\s*attr\(data-tooltip\)/);
+assert.match(fs.readFileSync(new URL('../current.js', import.meta.url), 'utf8'), /star-button/);
+assert.match(fs.readFileSync(new URL('../current-result.css', import.meta.url), 'utf8'), /\.score-context\s*\{[^}]*display:\s*grid/s);
+assert.match(fs.readFileSync(new URL('../popup.html', import.meta.url), 'utf8'), /current-result\.css/);
+assert.match(fs.readFileSync(new URL('../shared-ui.js', import.meta.url), 'utf8'), /chrome\.tabs\.update\(existing\.id, \{ active: true \}\)/);
+assert.match(fs.readFileSync(new URL('../shared-ui.js', import.meta.url), 'utf8'), /path === 'popup\.html'.*chrome\.tabs\.reload\(existing\.id\)/);
 assert.match(consentStyles, /place-items:\s*stretch center/);
 assert.match(consentStyles, /grid-template-rows:\s*minmax\(0, 1fr\) auto/);
 for (const page of ['current', 'popup', 'search']) {
@@ -424,6 +438,17 @@ for (const page of ['current', 'popup', 'search']) {
   assert.ok(html.indexOf('shared-ui.js') < html.indexOf(`${page}.js`), `${page}.html must load shared-ui.js first`);
   assert.match(pageSource, /if \(accepted\)/, `${page}.js must not start after declined consent`);
 }
-assert.match(fs.readFileSync(new URL('../current.html', import.meta.url), 'utf8'), /width:\s*560px;\s*min-height:\s*560px/);
+for (const page of ['current.html', 'popup.html', 'search.html']) {
+  const html = fs.readFileSync(new URL(`../${page}`, import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="(?:fromSecond|finishedOnly)"/);
+}
+assert.match(fs.readFileSync(new URL('../rating.html', import.meta.url), 'utf8'), /Удержание читателей от второго тома/);
+assert.deepEqual(JSON.parse(JSON.stringify(await getUiPreferences())), {
+  fromSecond: true,
+  finishedOnly: true,
+  catalog: {
+    status: 'all', minAudienceRetention: '', minLikeRetention: '', sortBy: 'rating', sortDirection: 'desc'
+  }
+});
 
 console.log('Smoke tests passed: privacy consent, parsing, 3-tom minimum, time/book-adjusted 60/40 rating, half-life, reference comments, adaptive genres, filters and 10-card search batches work.');

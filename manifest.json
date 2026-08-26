@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Каталог циклов для Author.Today",
-  "version": "0.16.1",
+  "version": "0.18.4",
   "description": "Неофициальный каталог, поиск и анализ удержания аудитории в циклах Author.Today.",
   "incognito": "split",
-  "permissions": ["storage", "alarms"],
+  "permissions": ["storage", "alarms", "clipboardWrite"],
   "host_permissions": ["https://author.today/*", "https://api.author.today/*"],
   "icons": {
     "16": "icons/icon-16.png",
@@ -22,7 +22,8 @@
   },
   "background": { "service_worker": "background.js", "type": "module" },
   "content_scripts": [{
-    "matches": ["https://author.today/work/series/*"],
+    "matches": ["https://author.today/work/*"],
+    "css": ["content.css", "favorite-content.css"],
     "js": ["content.js"],
     "run_at": "document_idle"
   }]

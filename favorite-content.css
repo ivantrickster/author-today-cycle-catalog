@@ -1,0 +1,50 @@
+#at-cycle-result footer #at-cycle-star {
+  position: relative;
+  width: 37px;
+  height: 37px;
+  background: transparent;
+  color: #ffd66b;
+  font-size: 27px;
+  line-height: 1;
+}
+
+#at-cycle-result footer #at-cycle-star:hover {
+  background: #393242;
+  color: #ffe39a;
+}
+
+#at-cycle-result footer #at-cycle-star.active {
+  background: transparent;
+  color: #ffd66b;
+}
+
+#at-cycle-result footer #at-cycle-star:focus-visible {
+  outline: 2px solid #ffd66b;
+  outline-offset: 1px;
+}
+
+#at-cycle-result footer #at-cycle-star::after {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 0;
+  z-index: 10;
+  padding: 5px 8px;
+  border: 1px solid #514a60;
+  border-radius: 6px;
+  background: #17151f;
+  box-shadow: 0 5px 16px #0008;
+  color: #f4f0ff;
+  content: attr(data-tooltip);
+  font: 12px/1.25 system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity .12s ease, transform .12s ease;
+  white-space: nowrap;
+}
+
+#at-cycle-result footer #at-cycle-star:hover::after,
+#at-cycle-result footer #at-cycle-star:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}

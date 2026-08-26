@@ -15,6 +15,7 @@ $('#searchForm').addEventListener('submit', event => {
   startSearch();
 });
 $('#loadMore').addEventListener('click', () => runSearch(nextCursor, false));
+$('#ratingInfo').addEventListener('click', () => openExtensionPage('rating.html'));
 $('#genreButton').addEventListener('click', openGenreModal);
 $('#closeGenres').addEventListener('click', closeGenreModal);
 $('#cancelGenres').addEventListener('click', closeGenreModal);
@@ -39,8 +40,8 @@ function readFilters() {
     minBookLikes: $('#minBookLikes').value,
     genreRules: { ...genreRules },
     minBooks: $('#minBooks').value,
-    fromSecond: $('#fromSecond').checked,
-    finishedOnly: $('#finishedOnly').checked
+    fromSecond: true,
+    finishedOnly: true
   };
 }
 
@@ -85,9 +86,7 @@ async function runSearch(cursor, reset) {
 }
 
 function selectedScore(cycle) {
-  const filters = activeFilters || readFilters();
-  const key = filters.finishedOnly ? (filters.fromSecond ? 'finishedFromSecond' : 'finished') : (filters.fromSecond ? 'fromSecond' : 'default');
-  return cycle.scores?.[key] || cycle.score || {};
+  return cycle.scores?.finishedFromSecond || cycle.score || {};
 }
 
 function sortResults() {
@@ -292,10 +291,13 @@ function updateGenreSummary() {
 }
 
 async function copyReport(cycle, score) {
-  const text = diagnosticReport(cycle, score);
-  try { await navigator.clipboard.writeText(text); }
-  catch { const area = document.createElement('textarea'); area.value = text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); }
-  $('#progress').textContent = 'Диагностический отчёт скопирован.';
+  try {
+    await copyCycleCardImage(cycle, score);
+    $('#progress').textContent = 'Карточка скопирована как изображение.';
+  } catch {
+    await navigator.clipboard.writeText(diagnosticReport(cycle, score));
+    $('#progress').textContent = 'Изображение недоступно — скопирован текстовый отчёт.';
+  }
 }
 
 function renderResults() {
@@ -306,25 +308,25 @@ function renderResults() {
     const anomalyNote = scoreNotes(score);
     const genres = (cycle.genres || []).slice(0, 3);
     const genreLine = genres.length ? `<div class="genre-tags" aria-label="Жанры первого тома">${genres.map(genre => `<span>${escapeHtml(genre)}</span>`).join('')}</div>` : '';
-    const discussionReference = `<div class="discussion-reference"><strong>Комментарии · справочно</strong><span>Том №${score.baselineBook || 1}: ${count(score.baselineComments)} · том №${score.lastBook || '—'}: ${count(score.lastComments)}</span><small>Один читатель может написать несколько комментариев, поэтому они не влияют на рейтинг.</small></div>`;
+    const discussionReference = `<div class="discussion-reference"><strong>Комментарии</strong><span>${count(score.baselineComments)} → ${count(score.lastComments)}</span></div>`;
     return `<article class="card" data-series-id="${cycle.seriesId}">
       <div class="card-head">
         <div><a class="cycle-title" href="${cycle.url}" target="_blank">${escapeHtml(cycle.title)}</a><div class="author">${escapeHtml(cycle.author)}</div></div>
-        <strong class="score" title="${ratingHint(score)}">${score.value ?? '—'}</strong>
+        <strong class="score">${score.value ?? '—'}</strong>
       </div>
       <div class="meta"><span class="tag">${cycle.status === 'completed' ? 'цикл завершён' : 'цикл в процессе'}</span> ${cycle.books.length} томов · завершено ${finished}${cycle.durationLabel && cycle.durationLabel !== '—' ? ` · ${cycle.durationLabel}` : ''}</div>
       ${genreLine}
       ${anomalyNote}
       <div class="metrics">
-        <div class="metric">Аудитория к последнему учтённому тому<b class="${(score.audienceRetention ?? 0) >= .65 ? 'good' : 'bad'}">${percent(score.audienceRetention)}</b><span class="counts">${count(score.baselineLibraries)} → ${count(score.lastLibraries)} добавлений</span></div>
-        <div class="metric">Лайки к последнему учтённому тому<b class="${(score.likeRetention ?? 0) >= .65 ? 'good' : 'bad'}">${percent(score.likeRetention)}</b><span class="counts">${count(score.baselineLikes)} → ${count(score.lastLikes)}</span></div>
+        <div class="metric">Аудитория<b class="${(score.audienceRetention ?? 0) >= .65 ? 'good' : 'bad'}">${percent(score.audienceRetention)}</b><span class="counts">${count(score.baselineLibraries)} → ${count(score.lastLibraries)}</span></div>
+        <div class="metric">Лайки<b class="${(score.likeRetention ?? 0) >= .65 ? 'good' : 'bad'}">${percent(score.likeRetention)}</b><span class="counts">${count(score.baselineLikes)} → ${count(score.lastLikes)}</span></div>
       </div>
       ${scoreContext(score)}
       ${discussionReference}
       <div class="actions">
-        <button class="secondary show-dynamics" data-id="${cycle.seriesId}" type="button">Показать динамику</button>
-        <button class="secondary copy-report" data-id="${cycle.seriesId}" type="button">Скопировать отчёт</button>
-        <button class="primary add-cycle" data-id="${cycle.seriesId}">Добавить в мой каталог</button>
+        <button class="secondary show-dynamics icon-action" data-id="${cycle.seriesId}" type="button" title="Динамика" aria-label="Динамика">⌁</button>
+        <button class="secondary copy-report icon-action" data-id="${cycle.seriesId}" type="button" title="Скопировать карточку" aria-label="Скопировать карточку">⧉</button>
+        <button class="primary add-cycle icon-action" data-id="${cycle.seriesId}" title="Добавить в мой каталог" aria-label="Добавить в мой каталог">☆</button>
         <button class="danger-soft exclude-cycle" data-id="${cycle.seriesId}" data-reason="ignored">Не интересует</button>
         <button class="read exclude-cycle" data-id="${cycle.seriesId}" data-reason="read">Уже прочитано</button>
       </div>
@@ -345,7 +347,6 @@ async function toggleDynamics(seriesId, button) {
   if (!panel) return;
   if (!panel.hidden) {
     panel.hidden = true;
-    button.textContent = 'Показать динамику';
     return;
   }
   panel.hidden = false;
@@ -357,7 +358,6 @@ async function toggleDynamics(seriesId, button) {
     const index = accumulatedResults.findIndex(item => Number(item.seriesId) === seriesId);
     if (index >= 0) accumulatedResults[index] = response.cycle;
     panel.innerHTML = renderDynamics(response.cycle, selectedScore(response.cycle));
-    button.textContent = 'Скрыть динамику';
   } catch (error) {
     panel.innerHTML = `<div class="chart-loading chart-error">Не удалось загрузить динамику: ${escapeHtml(error.message)}</div>`;
   } finally {
@@ -368,7 +368,8 @@ async function toggleDynamics(seriesId, button) {
 async function addCycle(seriesId, button) {
   button.disabled = true;
   const result = await chrome.runtime.sendMessage({ type: 'addSearchCycle', seriesId });
-  button.textContent = result.added ? 'Добавлено' : result.reason === 'exists' ? 'Уже в каталоге' : 'Не удалось добавить';
+  button.textContent = result.added || result.reason === 'exists' ? '★' : '!';
+  button.title = result.added || result.reason === 'exists' ? 'Уже в моём каталоге' : 'Не удалось добавить';
 }
 
 async function hideCycle(seriesId, reason) {
