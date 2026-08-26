@@ -16,14 +16,16 @@
 
 Установите [«Каталог циклов для Author.Today» из Chrome Web Store](https://chromewebstore.google.com/detail/omdnnakgjlbjfblpciogifkbhbfknkcj). Версия из магазина обновляется автоматически после прохождения проверки Google.
 
-### Ручная установка актуальных исходников
+### Ручная установка из GitHub Release
 
-1. Скачайте [архив ветки `main`](https://github.com/ivantrickster/author-today-cycle-catalog/archive/refs/heads/main.zip) и распакуйте его в постоянную папку.
+1. Откройте [последний GitHub Release](https://github.com/ivantrickster/author-today-cycle-catalog/releases/latest), скачайте ZIP из раздела **Assets** и распакуйте его в постоянную папку.
 2. Откройте `chrome://extensions`, `edge://extensions` или `browser://extensions` в Яндекс.Браузере.
 3. Включите режим разработчика и нажмите «Загрузить распакованное».
 4. Выберите папку, внутри которой находится `manifest.json`, затем закрепите расширение на панели браузера.
 
 Распакованная версия не обновляется автоматически. Для обновления замените её файлы актуальными и нажмите ↻ на странице расширений.
+
+Архив ветки [`main`](https://github.com/ivantrickster/author-today-cycle-catalog/archive/refs/heads/main.zip) содержит текущие исходники для разработки и может опережать последний опубликованный релиз.
 
 ## Проверка кода
 
